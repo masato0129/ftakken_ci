@@ -1,0 +1,60 @@
+name: Crawl and Upload
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 21 * * *'  # UTC21時 → JST06時
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout public repo
+        uses: actions/checkout@v4
+
+      - name: Checkout private crawler code
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.PRIVATE_REPO }}
+          token:       ${{ secrets.PRIVATE_REPO_PAT }}
+          path:        crawler
+
+      - name: Setup Python & Playwright
+        run: |
+          cd crawler
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          npx playwright install --with-deps
+
+      - name: Install rclone
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y rclone
+
+      - name: Write rclone.conf
+        run: |
+          mkdir -p ~/.config/rclone
+          printf '%s\n' "${{ secrets.RCLONE_CONF_CONTENT }}" \
+            > ~/.config/rclone/rclone.conf
+          chmod 600 ~/.config/rclone/rclone.conf
+
+      - name: Run crawler
+        run: |
+          cd crawler
+          python f_takken_all_detached.py
+
+      - name: Upload CSV to Google Drive
+        env:
+          REMOTE: ${{ vars.GDRIVE_REMOTE }}
+          FOLDER: ${{ vars.GDRIVE_FOLDER_ID }}
+        run: |
+          cd crawler
+          FILE=$(ls *_f_takken*.csv | head -n1)
+          if [ -z "$FILE" ]; then
+            echo "No CSV to upload, exiting."
+            exit 0
+          fi
+          echo "Uploading $FILE to $REMOTE:$FOLDER"
+          rclone copy "$FILE" "$REMOTE":"$FOLDER"/
+          
