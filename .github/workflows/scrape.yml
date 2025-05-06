@@ -37,7 +37,13 @@ jobs:
           mkdir -p ~/.config/rclone
           printf '%s\n' "${{ secrets.RCLONE_CONF_CONTENT }}" \
             > ~/.config/rclone/rclone.conf
-          chmod 600 ~/.config/rclone/rclone.conf
+          chmod 600 ~/.config/rclone/rclone.conf'
+          
+      - name: Debug rclone.conf
+        run: |
+          echo "---- ~/.config/rclone/rclone.conf ----"
+          sed -n '1,50p' ~/.config/rclone/rclone.conf   # 最初の 50 行だけ表示
+          echo "---------------------------------------"
 
       - name: Run crawler
         run: |
