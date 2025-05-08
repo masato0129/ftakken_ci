@@ -3,7 +3,7 @@ name: Crawl and Upload
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 21 * * *'  # UTC21時 → JST06時
+    - cron: '0 18 * * *'  # UTC18時 → JST03時
 
 jobs:
   scrape:
